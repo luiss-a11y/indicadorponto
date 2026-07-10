@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indicador de Ajustes do Ponto - JCA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0b1420;
+    --bg-panel:#101a2c;
+    --bg-card:#141f34;
+    --border:#263352;
+    --border-strong:#3a4b73;
+    --text:#e9edf6;
+    --text-dim:#8b96b3;
+    --accent:#c9a35f;
+    --accent-soft:#2a2517;
+    --accent-ink:#171310;
+    --steel:#6c93bb;
+    --steel-soft:#16233a;
+    --good:#4f9d6e;
+    --warn:#d0973f;
+    --bad:#d3564f;
+    --font-body: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+    --font-display: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
+    --font-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Consolas, 'Liberation Mono', monospace;
+  }
+  [data-theme="light"]{
+    --bg:#eef1f6;
+    --bg-panel:#ffffff;
+    --bg-card:#ffffff;
+    --border:#dde3ee;
+    --border-strong:#c3ccdd;
+    --text:#141b2c;
+    --text-dim:#5c6780;
+    --accent:#a3792f;
+    --accent-soft:#f4ead4;
+    --accent-ink:#3a2c10;
+    --steel:#3f6690;
+    --steel-soft:#e8eff7;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font-body);}
+  body{min-height:100vh;background-image:radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0);background-size:26px 26px;background-attachment:fixed;background-color:var(--bg);}
+  .app{max-width:1280px;margin:0 auto;padding:24px 20px 60px;}
+  .num, .tabular{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:16px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--border);}
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand .logo{width:44px;height:44px;border-radius:3px;background:var(--bg-card);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);font-size:14px;letter-spacing:.5px;font-family:var(--font-display);}
+  .brand .eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 3px;}
+  .brand h1{font-size:19px;margin:0;font-weight:600;font-family:var(--font-display);letter-spacing:.01em;}
+  .brand p{margin:3px 0 0;font-size:12px;color:var(--text-dim);}
+  .topbar-actions{display:flex;gap:10px;align-items:center;}
+  .selo{display:none;align-items:center;gap:10px;border:1px solid var(--accent);border-radius:4px;padding:7px 14px;transform:rotate(-1.2deg);position:relative;}
+  .selo.show{display:flex;}
+  .selo::before{content:'';position:absolute;inset:3px;border:1px solid var(--accent);border-radius:2px;opacity:.5;}
+  .selo .selo-label{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;}
+  .selo .selo-value{font-family:var(--font-mono);font-size:13px;color:var(--text);font-weight:600;}
+
+  .btn{border:1px solid var(--border-strong);background:var(--bg-card);color:var(--text);padding:8px 14px;border-radius:5px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.15s;font-family:var(--font-body);}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700;}
+  .btn.primary:hover{opacity:.88;color:var(--accent-ink);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn.small{padding:6px 10px;font-size:12px;}
+
+  .tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .tab{padding:11px 18px;font-size:12.5px;letter-spacing:.03em;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;font-weight:600;text-transform:uppercase;font-size:11.5px;}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .tab:hover{color:var(--text);}
+  .tab[disabled]{opacity:.35;pointer-events:none;}
+
+  .panel{display:none;}
+  .panel.active{display:block;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+
+  .card{background:var(--bg-card);border:1px solid var(--border);border-top:2px solid var(--accent);border-radius:4px;padding:20px 22px;margin-bottom:18px;}
+  .card h2{margin:0 0 4px;font-size:14.5px;font-family:var(--font-display);font-weight:600;letter-spacing:.01em;}
+  .card .sub{color:var(--text-dim);font-size:12px;margin-bottom:16px;}
+
+  .upload-zone{border:1px dashed var(--border-strong);border-radius:4px;padding:46px 20px;text-align:center;cursor:pointer;transition:.15s;background:var(--bg-panel);}
+  .upload-zone:hover, .upload-zone.drag{border-color:var(--accent);background:var(--accent-soft);}
+  .upload-zone .icon{font-size:32px;margin-bottom:10px;opacity:.7;}
+  .upload-zone h3{margin:0 0 6px;font-size:14.5px;font-family:var(--font-display);font-weight:600;}
+  .upload-zone p{margin:0;color:var(--text-dim);font-size:12px;}
+  .upload-zone input{display:none;}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:18px;}
+  .kpi{background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:16px 18px;position:relative;overflow:hidden;}
+  .kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);}
+  .kpi .label{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px;font-weight:600;}
+  .kpi .value{font-size:27px;font-weight:700;font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+  .kpi .foot{font-size:11px;color:var(--text-dim);margin-top:5px;}
+  .kpi.primary .value{color:var(--accent);}
+  .kpi.primary::before{background:var(--accent);width:4px;}
+
+  .chart-wrap{position:relative;width:100%;}
+  .chart-wrap.tall{height:380px;}
+  .chart-wrap.medium{height:320px;}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th,td{text-align:left;padding:10px 10px;border-bottom:1px solid var(--border);}
+  td.num, th.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right;}
+  th{color:var(--text-dim);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;position:sticky;top:0;background:var(--bg-card);border-bottom:1px solid var(--border-strong);}
+  tr:hover td{background:var(--steel-soft);}
+  .table-scroll{max-height:420px;overflow:auto;border:1px solid var(--border);border-radius:4px;}
+  .badge{display:inline-block;padding:2px 9px;border-radius:3px;font-size:11px;font-weight:700;background:var(--accent-soft);color:var(--accent);font-family:var(--font-mono);}
+
+  .filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+  .field{display:flex;flex-direction:column;gap:6px;min-width:190px;}
+  .field label{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+  select, input[type=text], textarea{background:var(--bg-panel);border:1px solid var(--border-strong);color:var(--text);padding:9px 12px;border-radius:4px;font-size:13px;font-family:var(--font-body);}
+  select:focus, input:focus, textarea:focus{outline:none;border-color:var(--accent);}
+
+  .empty{text-align:center;padding:60px 20px;color:var(--text-dim);}
+  .empty .icon{font-size:38px;margin-bottom:10px;opacity:.6;}
+
+  .grid2{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr;}}
+
+  .email-preview{background:#ffffff;color:#1a1a1a;border-radius:4px;padding:26px;font-size:13.5px;line-height:1.55;border:1px solid #ddd;}
+  .email-preview h3{margin-top:0;font-size:15px;font-family:var(--font-display);}
+  .email-preview .chart-embed{border:1px solid #ddd;border-radius:4px;padding:12px;margin:16px 0;background:#fafafa;}
+  .email-preview img{max-width:100%;display:block;}
+  .email-preview a{color:#2563eb;}
+  .email-preview .signature{margin-top:18px;color:#444;font-size:12.5px;}
+
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--accent);color:var(--accent-ink);padding:12px 18px;border-radius:4px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;z-index:50;}
+  .toast.show{opacity:1;transform:none;}
+
+  textarea.email-source{width:100%;min-height:220px;resize:vertical;font-family:var(--font-mono);font-size:12.5px;line-height:1.5;}
+
+  .divider{height:1px;background:var(--border);margin:18px 0;}
+
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:6px;}
+</style>
+</head>
+<body data-theme="dark">
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <div class="logo">JCA</div>
+      <div>
+        <p class="eyebrow">Grupo JCA · Departamento Pessoal</p>
+        <h1>Indicador de Ajustes do Ponto Eletrônico</h1>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="selo" id="seloApuracao">
+        <div>
+          <div class="selo-label">Apurado</div>
+          <div class="selo-value" id="seloValue">—</div>
+        </div>
+      </div>
+      <span id="fileLabel" style="font-size:12px;color:var(--text-dim);"></span>
+      <button class="btn small" id="btnReplace" style="display:none;">Trocar arquivo</button>
+      <button class="btn small" id="btnTheme">🌙 Modo claro</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="upload">1. Upload</div>
+    <div class="tab" data-tab="colaboradores">2. Colaboradores</div>
+    <div class="tab" data-tab="dashboard" disabled>3. Dashboard Geral</div>
+    <div class="tab" data-tab="detalhe" disabled>4. Detalhamento</div>
+    <div class="tab" data-tab="email" disabled>5. Gerar E-mail</div>
+  </div>
+
+  <!-- TAB 1: UPLOAD -->
+  <div class="panel active" id="panel-upload">
+    <div class="card">
+      <h2>Importar relatório do Pontomais</h2>
+      <div class="sub">Envie o arquivo .xlsx ou .csv exportado do Pontomais (aba "Dados gerais" com colunas: Nome, Nome abreviado, Data, Mês, Status, Tipo de solicitação, Observação, Motivo, Equipe/Setor, Unidade).</div>
+      <div class="upload-zone" id="dropZone">
+        <div class="icon">📄</div>
+        <h3>Arraste o arquivo aqui ou clique para selecionar</h3>
+        <p>Formatos aceitos: .xlsx, .xls, .csv</p>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+      </div>
+      <div id="uploadStatus" style="margin-top:14px;font-size:12.5px;color:var(--text-dim);"></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: COLABORADORES -->
+  <div class="panel" id="panel-colaboradores">
+    <div class="card" id="pendingCard" style="display:none;border-color:var(--warn);">
+      <h2 style="color:var(--warn);">Colaboradores pendentes de cadastro</h2>
+      <div class="sub">Encontrados no último arquivo importado, sem setor/unidade definido. Preencha e salve.</div>
+      <div id="pendingTableWrap"></div>
+    </div>
+
+    <div class="card">
+      <h2>Cadastro Nome → Setor → Unidade</h2>
+      <div class="sub">Usado para completar automaticamente o setor/unidade quando o arquivo importado (export bruto do Pontomais) não traz essas colunas. Fica salvo neste navegador.</div>
+      <div class="filters" style="align-items:flex-end;">
+        <div class="field" style="flex:1;min-width:220px;">
+          <label>Buscar colaborador</label>
+          <input type="text" id="colabSearch" placeholder="Digite um nome...">
+        </div>
+        <div class="field">
+          <button class="btn primary small" id="btnAddColab">+ Adicionar colaborador</button>
+        </div>
+        <div class="field">
+          <button class="btn small" id="btnExportRoster">Exportar cadastro (.json)</button>
+        </div>
+      </div>
+      <div class="table-scroll" style="max-height:520px;">
+        <table>
+          <thead><tr><th style="width:38%;">Nome</th><th style="width:26%;">Setor</th><th style="width:26%;">Unidade</th><th></th></tr></thead>
+          <tbody id="tblColaboradores"></tbody>
+        </table>
+      </div>
+      <div class="sub" style="margin-top:12px;" id="colabCount"></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: DASHBOARD GERAL -->
+  <div class="panel" id="panel-dashboard">
+    <div class="kpis" id="kpiRow"></div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div>
+          <h2>Ajustes por Setor × Motivo</h2>
+          <div class="sub">Consolidado de todos os setores e unidades do período importado</div>
+        </div>
+        <button class="btn small" id="btnRefreshDashCharts" title="Clique se o gráfico não aparecer">🔄 Atualizar gráfico</button>
+      </div>
+      <div class="chart-wrap tall"><canvas id="chartSetorMotivo"></canvas></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Ranking de Setores</h2>
+        <div class="sub">Total de ajustes por setor, todas as unidades</div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Setor</th><th class="num">Total</th><th class="num">% do geral</th></tr></thead>
+            <tbody id="tblSetores"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Distribuição por Motivo</h2>
+        <div class="sub">Todos os setores e unidades</div>
+        <div class="chart-wrap medium"><canvas id="chartMotivoPizza"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Top 15 Colaboradores</h2>
+      <div class="sub">Maior número de ajustes solicitados no período</div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Colaborador</th><th>Setor</th><th>Unidade</th><th class="num">Total</th></tr></thead>
+          <tbody id="tblColabs"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: DETALHAMENTO -->
+  <div class="panel" id="panel-detalhe">
+    <div class="card">
+      <h2>Filtrar por Setor e Unidade</h2>
+      <div class="filters">
+        <div class="field">
+          <label>Setor</label>
+          <select id="selSetor"></select>
+        </div>
+        <div class="field">
+          <label>Unidade</label>
+          <select id="selUnidade"></select>
+        </div>
+        <div class="field" style="justify-content:flex-end;">
+          <button class="btn primary small" id="btnIrEmail">Gerar e-mail deste recorte →</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="detalheContent"></div>
+  </div>
+
+  <!-- TAB 4: EMAIL -->
+  <div class="panel" id="panel-email">
+    <div class="card">
+      <h2>Configurar e-mail</h2>
+      <div class="filters">
+        <div class="field">
+          <label>Setor</label>
+          <select id="emSetor"></select>
+        </div>
+        <div class="field">
+          <label>Unidade</label>
+          <select id="emUnidade"></select>
+        </div>
+        <div class="field" style="flex:1;min-width:260px;">
+          <label>Destinatários (separados por vírgula)</label>
+          <input type="text" id="emDestinatarios" placeholder="gestor@jca.com.br, responsavel@jca.com.br">
+        </div>
+      </div>
+      <div class="filters">
+        <div class="field" style="flex:1;min-width:260px;">
+          <label>Assunto</label>
+          <input type="text" id="emAssunto">
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Pré-visualização</h2>
+        <div class="sub">É assim que o conteúdo vai aparecer</div>
+        <div class="email-preview" id="emailPreview"></div>
+      </div>
+      <div class="card">
+        <h2>Ações</h2>
+        <div class="sub">Escolha como usar este conteúdo</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button class="btn primary" id="btnOpenMail">✉️ Abrir no cliente de e-mail</button>
+          <button class="btn" id="btnCopyHtml">📋 Copiar como e-mail formatado (colar no Gmail/Outlook)</button>
+          <button class="btn" id="btnCopyText">📋 Copiar apenas o texto</button>
+          <button class="btn" id="btnDownloadChart">🖼️ Baixar imagem do gráfico</button>
+        </div>
+        <div class="divider"></div>
+        <div class="sub" style="margin-bottom:8px;">Editar texto (opcional)</div>
+        <textarea class="email-source" id="emBody"></textarea>
+        <button class="btn small" id="btnApplyText" style="margin-top:10px;">Aplicar alterações na prévia</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Verifica se as bibliotecas externas carregaram (podem ser bloqueadas por firewall corporativo)
+window.addEventListener('DOMContentLoaded', ()=>{
+  if(typeof XLSX === 'undefined' || typeof Chart === 'undefined'){
+    const missing = [];
+    if(typeof XLSX === 'undefined') missing.push('leitura de planilhas (SheetJS)');
+    if(typeof Chart === 'undefined') missing.push('gráficos (Chart.js)');
+    document.getElementById('uploadStatus').innerHTML =
+      `<span style="color:var(--bad)">⚠️ Não foi possível carregar a biblioteca de ${missing.join(' e ')}. `+
+      `Isso costuma acontecer quando o firewall/proxy da rede bloqueia o CDN (cdnjs.cloudflare.com). `+
+      `Tente em outra rede, sem VPN corporativa, ou libere o domínio cdnjs.cloudflare.com no seu navegador.</span>`;
+    document.getElementById('dropZone').style.pointerEvents = 'none';
+    document.getElementById('dropZone').style.opacity = '0.5';
+  }else{
+    applyChartDefaults();
+  }
+});
+</script>
+<script>
+/* ============== ESTRUTURA ORGANIZACIONAL (fixa, igual ao Banco de Horas) ============== */
+// Lista oficial de setores x unidades do Grupo JCA. Mantém o filtro completo
+// e estável mês a mês, mesmo que algum setor não tenha ajustes no período importado.
+const SETOR_UNIDADE_MAP = {
+  'ACERT': ['MATRIZ'],
+  'ADMINISTRATIVO': ['MATRIZ'],
+  'CONSULTORIA FISCAL': ['DUQUE DE CAXIAS'],
+  'CONTABILIDADE': ['DUQUE DE CAXIAS', 'MATRIZ', 'MATRIZ-PEQ. NEGÓCIOS'],
+  'CONTROLADORIA': ['MATRIZ'],
+  'DP': ['DUQUE DE CAXIAS', 'MATRIZ'],
+  'FINANCEIRO': ['MATRIZ'],
+  'FISCAL': ['DUQUE DE CAXIAS', 'MATRIZ'],
+  'GENTE E GESTAO': ['MATRIZ'],
+  'LEGALIZACAO': ['MATRIZ'],
+  'TI': ['MATRIZ']
+};
+const SETORES_CANONICOS = Object.keys(SETOR_UNIDADE_MAP).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+
+// Apenas estes motivos entram nas contagens/gráficos/e-mails. Qualquer outro
+// motivo presente na planilha (ex: erros de sistema, justificativas administrativas
+// que não sejam ausência de marcação) é ignorado.
+const MOTIVOS_PERMITIDOS = [
+  'ausencia de marcacao - entrada',
+  'ausencia de marcacao - almoco',
+  'ausencia de marcacao - saida',
+  'multiplas ausencias de marcacao'
+];
+function normalizeMotivo(s){
+  return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+}
+
+/* ============== CADASTRO DE COLABORADORES (Nome -> Setor/Unidade) ==============
+   Usado para preencher Setor/Unidade quando o arquivo importado (ex: export bruto
+   do Pontomais) não traz essas colunas. Pré-carregado a partir da planilha de
+   referência e depois mantido pelo usuário / atualizado automaticamente sempre
+   que um arquivo já tratado (com Setor/Unidade) for importado. */
+const ROSTER_DEFAULT = {"ADRIANA DA SILVA ARRUDA": {"setor": "CONSULTORIA FISCAL", "unidade": "DUQUE DE CAXIAS"}, "ADRIANA SAMUEL SILVA RODRIGUES": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "ADRIANE PINHO DE OLIVEIRA GOMES": {"setor": "CONTABILIDADE", "unidade": "DUQUE DE CAXIAS"}, "ALEXANDRE DA SILVA BRAGA": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "ALICE DOS SANTOS MORAIS": {"setor": "DP", "unidade": "DUQUE DE CAXIAS"}, "ALINE JATOBA DOLAVALE": {"setor": "DP", "unidade": "DUQUE DE CAXIAS"}, "ANA BEATRIZ PEREIRA DE SALES": {"setor": "CONTABILIDADE", "unidade": "MATRIZ-PEQ. NEGÓCIOS"}, "ANA CAROLINA DE SOUZA CARVALHO": {"setor": "ADMINISTRATIVO", "unidade": "MATRIZ"}, "ANA CAROLINE DA SILVA SANTOS": {"setor": "DP", "unidade": "MATRIZ"}, "ANA JULIA LOPES DA SILVA": {"setor": "GENTE E GESTAO", "unidade": "MATRIZ"}, "ANNA LIZ MARIANO CORREIA": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "BALTAZAR KEVIN COELHO RODRIGUES": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "BARBARA REGINA WALGER SANTOS PRALON": {"setor": "FISCAL", "unidade": "DUQUE DE CAXIAS"}, "BEATRIZ FURTADO SIQUEIRA": {"setor": "FISCAL", "unidade": "DUQUE DE CAXIAS"}, "CAMILLA FARIAS ABREU": {"setor": "FISCAL", "unidade": "MATRIZ"}, "CARLOS FELIPE DO NASCIMENTO FERREIRA": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "CASSIA DA SILVA FERREIRA": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "CLAUDISVALDO NASCIMENTO VIEIRA": {"setor": "FISCAL", "unidade": "DUQUE DE CAXIAS"}, "CLECIO ALVES VERAS": {"setor": "CONTABILIDADE", "unidade": "DUQUE DE CAXIAS"}, "CRISTIANE TISSI DA SILVA": {"setor": "DP", "unidade": "DUQUE DE CAXIAS"}, "DANIELA DOS SANTOS MARTINS": {"setor": "CONTABILIDADE", "unidade": "DUQUE DE CAXIAS"}, "DAYANA DARLY DA SILVA SOUZA": {"setor": "ADMINISTRATIVO", "unidade": "MATRIZ"}, "DAYANA RIBEIRO SANTOS": {"setor": "DP", "unidade": "DUQUE DE CAXIAS"}, "ELLEN ROZA LOPES DE MATOS": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "FELIPE PIMENTEL REIS": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "GIOVANNA FERNANDA MIRANDA DE OLIVEIRA": {"setor": "FISCAL", "unidade": "MATRIZ"}, "GUILHERME DAVIS CASTILHO ECKHARDT": {"setor": "LEGALIZACAO", "unidade": "MATRIZ"}, "GUSTAVO PEREIRA ASSUMPCAO SILVA": {"setor": "DP", "unidade": "MATRIZ"}, "JAIRO PEREIRA DE MENEZES": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "JAMILY FONTOURA LEMOS": {"setor": "FISCAL", "unidade": "MATRIZ"}, "JESSICA MARQUES VILELA BERNARDES": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "JIVANELY BITENCOURT DIAS VEIGA": {"setor": "FISCAL", "unidade": "DUQUE DE CAXIAS"}, "JOSE ADRIANO DE SOUSA ARAUJO": {"setor": "TI", "unidade": "MATRIZ"}, "JOSENILTON BERNARDO DOS SANTOS": {"setor": "CONTABILIDADE", "unidade": "DUQUE DE CAXIAS"}, "KAREN AVENDANA NUNES": {"setor": "FISCAL", "unidade": "MATRIZ"}, "KARLA CORREA DOS SANTOS": {"setor": "DP", "unidade": "MATRIZ"}, "KELLY BARROS BRAGA": {"setor": "FISCAL", "unidade": "MATRIZ"}, "LAIZ APARECIDA ARAO FERREIRA DA COSTA DE SOUZA": {"setor": "ACERT", "unidade": "MATRIZ"}, "LEDIANE MARQUES DA SILVA": {"setor": "FISCAL", "unidade": "MATRIZ"}, "LUANA DE AZEVEDO LEAL": {"setor": "DP", "unidade": "MATRIZ"}, "LUCCAS DE OLIVEIRA LIMA ROSA": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "MARCOS VINICIUS ALVES MARINS": {"setor": "FISCAL", "unidade": "MATRIZ"}, "MARIA EDUARDA DA SILVA CARVALHO": {"setor": "DP", "unidade": "MATRIZ"}, "MARIA EDUARDA SILVA LIMA": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "MARIA GABRIELA VASCONCELLOS PINTA": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "MARIANA DA SILVA LOUREIRO": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "MARLON DE OLIVEIRA POIARES PEREIRA": {"setor": "CONTABILIDADE", "unidade": "DUQUE DE CAXIAS"}, "MATHEUS WERNECK JARDIM DO AMARAL": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "MELISSA PEREIRA QUINTANILHA": {"setor": "CONTROLADORIA", "unidade": "MATRIZ"}, "MILENA BALBINO MARINHO": {"setor": "FISCAL", "unidade": "MATRIZ"}, "NEOLILA DE AGUIAR OLIVEIRA": {"setor": "FINANCEIRO", "unidade": "MATRIZ"}, "PABLO EDUARDO ALVES DOS SANTOS": {"setor": "FISCAL", "unidade": "MATRIZ"}, "PEDRO HENRIQUE DE ARAUJO SIMAO": {"setor": "ACERT", "unidade": "MATRIZ"}, "RAFAEL OLIVEIRA DE SOUZA SANTOS": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "RAPHAEL DE PAULA PASSOS": {"setor": "FISCAL", "unidade": "MATRIZ"}, "RAQUEL SARA ANICETO DA SILVA": {"setor": "CONTABILIDADE", "unidade": "DUQUE DE CAXIAS"}, "RODRIGO VASCONCELOS BOTELHO FERNANDES": {"setor": "TI", "unidade": "MATRIZ"}, "RUHAN FARIAS ABREU": {"setor": "TI", "unidade": "MATRIZ"}, "SERGIO DAS NEVES SILVA": {"setor": "DP", "unidade": "DUQUE DE CAXIAS"}, "SHAYENNE VIEIRA DE ALMEIDA": {"setor": "FISCAL", "unidade": "MATRIZ"}, "SUELLEN CARDOSO SOARES LIMA": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "SUELLEN PEREIRA DE MORAES": {"setor": "DP", "unidade": "DUQUE DE CAXIAS"}, "TAIS SOUZA DA SILVA": {"setor": "CONTABILIDADE", "unidade": "DUQUE DE CAXIAS"}, "TAIZA CAROLINA FERREIRA PIMENTEL": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "TALITA SANTOS DA SILVA": {"setor": "CONTABILIDADE", "unidade": "DUQUE DE CAXIAS"}, "TAYNA DE BRITO FRANCISCO": {"setor": "FISCAL", "unidade": "DUQUE DE CAXIAS"}, "THAIS DE SOUZA LIRIO REIS": {"setor": "FISCAL", "unidade": "MATRIZ"}, "THALITA DA SILVA COSTA": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "THAYNA BARROS CONCEICAO": {"setor": "FINANCEIRO", "unidade": "MATRIZ"}, "THIAGO NASCIMENTO DA SILVA": {"setor": "CONTABILIDADE", "unidade": "DUQUE DE CAXIAS"}, "THIAGO TAUBE CAROLO": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "VERONICA GOMES VILELA": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "VICTOR HUGO DOS SANTOS GOMES": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "WANDERSON CESAR BRAGA MATA": {"setor": "ACERT", "unidade": "MATRIZ"}, "WELLINGTON CUNHA DE SOUSA": {"setor": "FISCAL", "unidade": "DUQUE DE CAXIAS"},
+  "BEATRIZ ALVES MARTINS": {"setor": "FISCAL", "unidade": "DUQUE DE CAXIAS"}, "CRISTIANE OLIVEIRA SILVA NOVAES": {"setor": "DP", "unidade": "DUQUE DE CAXIAS"}, "DANIEL DA SILVA FERNANDES": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "DANIELLE MAIA DOS SANTOS": {"setor": "FISCAL", "unidade": "MATRIZ"}, "DAYANNE CARVALHO LOPES": {"setor": "FISCAL", "unidade": "MATRIZ"}, "DEBORAH AUSTRIACO ALVES": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "ELEN CRISTINE SILVA DE SOUZA": {"setor": "DP", "unidade": "DUQUE DE CAXIAS"}, "FELIPE BAHURY MESQUITA FORASTEIRO": {"setor": "CONTABILIDADE", "unidade": "MATRIZ"}, "GIOVANNA DOS ANJOS MARQUES DA SILVA": {"setor": "FISCAL", "unidade": "MATRIZ"}, "IRIS ALVES DO NASCIMENTO": {"setor": "DP", "unidade": "MATRIZ"}, "KAROLINE PAIVA VENANCIO": {"setor": "GENTE E GESTAO", "unidade": "MATRIZ"}, "LAILA ALVES FONSECA": {"setor": "FISCAL", "unidade": "MATRIZ"}, "MARCELA PIRES DA SILVA": {"setor": "DP", "unidade": "MATRIZ"}, "MARIANE DE SOUZA SILVA": {"setor": "DP", "unidade": "MATRIZ"}, "RICHARD THOMAZ CASTRO": {"setor": "LEGALIZACAO", "unidade": "MATRIZ"}, "ROSINEIDE GONCALVES DA SILVA": {"setor": "ADMINISTRATIVO", "unidade": "MATRIZ"}, "RUDSON VIEIRA DOS SANTOS": {"setor": "DP", "unidade": "MATRIZ"}, "SAMANTHA REGINA DOS SANTOS": {"setor": "CONTABILIDADE", "unidade": "DUQUE DE CAXIAS"}, "STIVEN BRITO ROCHA": {"setor": "LEGALIZACAO", "unidade": "MATRIZ"}, "SURACYRA GONCALVES NASCIMENTO": {"setor": "FISCAL", "unidade": "MATRIZ"}, "TAMIRIS DA FONSECA AZEVEDO": {"setor": "CONTROLADORIA", "unidade": "MATRIZ"}, "THAIANA CRISTINA DE OLIVEIRA": {"setor": "CONTABILIDADE", "unidade": "DUQUE DE CAXIAS"}, "THIAGO DE OLIVEIRA SANTOS MARTINS": {"setor": "FISCAL", "unidade": "DUQUE DE CAXIAS"}, "RUHAN ABREU AZEVEDO": {"setor": "TI", "unidade": "MATRIZ"}};
+
+const ROSTER_STORAGE_KEY = 'jcaPontoRoster_v1';
+let ROSTER = loadRoster();
+function loadRoster(){
+  try{
+    const stored = localStorage.getItem(ROSTER_STORAGE_KEY);
+    if(stored) return JSON.parse(stored);
+  }catch(e){ console.warn('Falha ao ler cadastro salvo, usando padrão.', e); }
+  return JSON.parse(JSON.stringify(ROSTER_DEFAULT));
+}
+function saveRoster(){
+  try{ localStorage.setItem(ROSTER_STORAGE_KEY, JSON.stringify(ROSTER)); }
+  catch(e){ console.warn('Falha ao salvar cadastro.', e); }
+}
+function rosterLookup(nome){
+  const key = normalizeOrg(nome);
+  return ROSTER[key] || null;
+}
+function rosterUpsert(nome, setor, unidade){
+  const key = normalizeOrg(nome);
+  ROSTER[key] = { setor: normalizeOrg(setor), unidade: normalizeOrg(unidade) };
+}
+
+/* ============== ESTADO ============== */
+let RAW = [];            // linhas cruas {nome, nomeAbrev, data, mes, status, tipo, observacao, motivo, setor, unidade}
+let pendingUnmapped = []; // nomes sem setor/unidade cadastrado no último upload
+let chartSetorMotivo, chartMotivoPizza, chartDetalhe;
+
+/* ============== ESTILO GLOBAL DOS GRÁFICOS ============== */
+function applyChartDefaults(){
+  if(typeof Chart === 'undefined' || !Chart.defaults) return;
+  Chart.defaults.font.family = "'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif";
+  Chart.defaults.color = cssVar('--text-dim');
+  Chart.defaults.plugins.tooltip.backgroundColor = cssVar('--bg-panel');
+  Chart.defaults.plugins.tooltip.titleColor = cssVar('--text');
+  Chart.defaults.plugins.tooltip.bodyColor = cssVar('--text');
+  Chart.defaults.plugins.tooltip.borderColor = cssVar('--accent');
+  Chart.defaults.plugins.tooltip.borderWidth = 1;
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius = 6;
+  Chart.defaults.plugins.tooltip.titleFont = { weight: '700', size: 12 };
+  Chart.defaults.plugins.tooltip.bodyFont = { size: 12 };
+  Chart.defaults.plugins.tooltip.displayColors = true;
+  Chart.defaults.plugins.tooltip.boxPadding = 4;
+  Chart.defaults.animation = { duration: 650, easing: 'easeOutQuart' };
+}
+// Cria um degradê vertical suave entre duas cores para preencher barras
+function makeGradient(ctx, chartArea, colorTop, colorBottom){
+  if(!chartArea || chartArea.bottom - chartArea.top <= 0) return colorTop;
+  const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+  g.addColorStop(0, colorTop);
+  g.addColorStop(1, colorBottom);
+  return g;
+}
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const bigint = parseInt(h.length===3 ? h.split('').map(c=>c+c).join('') : h, 16);
+  const r=(bigint>>16)&255, g=(bigint>>8)&255, b=bigint&255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+// Plugin: sombra suave sob as barras/segmentos, dá profundidade sem pesar
+const softShadowPlugin = {
+  id: 'softShadow',
+  beforeDatasetsDraw(chart){
+    chart.ctx.save();
+    chart.ctx.shadowColor = 'rgba(0,0,0,0.28)';
+    chart.ctx.shadowBlur = 10;
+    chart.ctx.shadowOffsetY = 4;
+  },
+  afterDatasetsDraw(chart){ chart.ctx.restore(); }
+};
+const MOTIVO_COLORS = ['#6c93bb','#c9a35f','#b25c52','#7d9471','#8b7ab8','#c47f3f','#5a8f95','#a3a08a'];
+
+/* ============== TEMA ============== */
+const btnTheme = document.getElementById('btnTheme');
+btnTheme.addEventListener('click', ()=>{
+  const html = document.body;
+  const isDark = html.getAttribute('data-theme') !== 'light';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  btnTheme.textContent = isDark ? '☀️ Modo escuro' : '🌙 Modo claro';
+  refreshChartsTheme();
+});
+
+function cssVar(name){ return getComputedStyle(document.body).getPropertyValue(name).trim(); }
+
+/* ============== TABS ============== */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    if(t.hasAttribute('disabled')) return;
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-'+t.dataset.tab).classList.add('active');
+    // Reconstrói os gráficos da aba recém-visível: um canvas criado enquanto o
+    // container está com display:none nasce com altura zero, o que quebra
+    // gradientes (viram invisíveis) mesmo depois que a aba aparece.
+    if(t.dataset.tab === 'dashboard' && RAW.length) buildDashboard();
+    if(t.dataset.tab === 'detalhe' && RAW.length) renderDetalhe();
+    if(t.dataset.tab === 'email' && document.getElementById('emSetor').value) renderEmail();
+  });
+});
+function goTab(name){
+  document.querySelector(`.tab[data-tab="${name}"]`).click();
+}
+document.addEventListener('DOMContentLoaded', ()=> renderColaboradores(false));
+document.getElementById('btnRefreshDashCharts').addEventListener('click', ()=>{
+  if(RAW.length) buildDashboard();
+  showToast('Gráficos atualizados.');
+});
+
+/* ============== UPLOAD ============== */
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const uploadStatus = document.getElementById('uploadStatus');
+const fileLabel = document.getElementById('fileLabel');
+const btnReplace = document.getElementById('btnReplace');
+
+dropZone.addEventListener('click', ()=> fileInput.click());
+dropZone.addEventListener('dragover', e=>{e.preventDefault(); dropZone.classList.add('drag');});
+dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e=>{
+  e.preventDefault(); dropZone.classList.remove('drag');
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e=>{
+  if(e.target.files.length) handleFile(e.target.files[0]);
+});
+btnReplace.addEventListener('click', ()=> fileInput.click());
+
+function handleFile(file){
+  uploadStatus.textContent = 'Lendo arquivo...';
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array', cellDates:false});
+      // Prioriza aba "Dados gerais" (formato tratado); senão usa a única/primeira aba
+      // (formato bruto de export do Pontomais costuma ter só "Relatório xlsx").
+      const sheetName = wb.SheetNames.find(n => n.toLowerCase().includes('dados gerais')) || wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      const { excluidosOutrosMotivos: excluidos, naoMapeados } = parseRows(rows);
+      mergeUnknownOrgUnits();
+      if(RAW.length === 0){
+        uploadStatus.innerHTML = '<span style="color:var(--bad)">Não encontramos linhas de dados válidas. Confira se o arquivo segue o formato esperado.</span>';
+        return;
+      }
+      let msg = `<span style="color:var(--good)">✓ ${RAW.length} solicitações de ausência importadas com sucesso.</span>`;
+      if(excluidos > 0){
+        msg += `<br><span style="color:var(--text-dim)">${excluidos} linha(s) desconsiderada(s) por não se tratarem de ausência de marcação (entrada, saída, almoço ou múltiplas ausências).</span>`;
+      }
+      if(naoMapeados.length > 0){
+        msg += `<br><span style="color:var(--warn)">⚠️ ${naoMapeados.length} colaborador(es) sem setor/unidade cadastrado — <a href="#" id="linkMapear" style="color:var(--warn);text-decoration:underline;">cadastrar agora</a>.</span>`;
+      }
+      uploadStatus.innerHTML = msg;
+      if(naoMapeados.length > 0){
+        pendingUnmapped = naoMapeados;
+        document.getElementById('linkMapear').addEventListener('click', (ev)=>{
+          ev.preventDefault();
+          goTab('colaboradores');
+          renderColaboradores(true);
+        });
+      }else{
+        pendingUnmapped = [];
+      }
+      fileLabel.textContent = file.name;
+      btnReplace.style.display = 'inline-flex';
+      document.querySelectorAll('.tab[disabled]').forEach(t=>t.removeAttribute('disabled'));
+      buildFilters();
+      goTab('dashboard');
+    }catch(err){
+      console.error(err);
+      uploadStatus.innerHTML = '<span style="color:var(--bad)">Erro ao ler o arquivo: '+err.message+'</span>';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+
+function parseRows(rows){
+  RAW = [];
+  let excluidosOutrosMotivos = 0;
+  const naoMapeados = new Set();
+  // Procura a linha de cabeçalho: primeira linha contendo "Nome" e "Motivo"
+  let headerIdx = -1;
+  for(let i=0;i<Math.min(rows.length,10);i++){
+    const r = rows[i].map(c=>String(c).trim().toLowerCase());
+    if(r.includes('nome') && r.some(c=>c.includes('motivo'))){
+      headerIdx = i; break;
+    }
+  }
+  if(headerIdx === -1) return { excluidosOutrosMotivos, naoMapeados: [] };
+  const header = rows[headerIdx].map(c=>String(c).trim().toLowerCase());
+  const idx = {
+    nome: header.indexOf('nome'),
+    nomeAbrev: header.findIndex(c=>c.includes('nome abreviado')),
+    data: header.indexOf('data'),
+    mes: header.indexOf('mês') > -1 ? header.indexOf('mês') : header.indexOf('mes'),
+    status: header.indexOf('status'),
+    tipo: header.findIndex(c=>c.includes('tipo de solicita')),
+    observacao: header.findIndex(c=>c.includes('observa')),
+    motivo: header.indexOf('motivo'),
+    setor: header.findIndex(c=>c.includes('equipe') || c.includes('setor')),
+    unidade: header.indexOf('unidade')
+  };
+  // Arquivo bruto do Pontomais não traz Setor/Unidade: usamos o cadastro de colaboradores.
+  const temColunasOrg = idx.setor > -1 && idx.unidade > -1;
+
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const row = rows[i];
+    if(!row || row.every(c=>String(c).trim()==='')) continue;
+    const nome = String(row[idx.nome] ?? '').trim();
+    if(!nome) continue;
+    const motivo = String(row[idx.motivo] ?? '').trim() || 'Não informado';
+    if(!MOTIVOS_PERMITIDOS.includes(normalizeMotivo(motivo))){
+      excluidosOutrosMotivos++;
+      continue;
+    }
+
+    let setor, unidade;
+    if(temColunasOrg){
+      setor = normalizeOrg(String(row[idx.setor] ?? '').trim()) || 'NÃO INFORMADO';
+      unidade = normalizeOrg(String(row[idx.unidade] ?? '').trim()) || 'NÃO INFORMADO';
+      if(setor !== 'NÃO INFORMADO' && unidade !== 'NÃO INFORMADO'){
+        rosterUpsert(nome, setor, unidade); // mantém o cadastro sempre atualizado
+      }
+    }else{
+      const found = rosterLookup(nome);
+      if(found){
+        setor = found.setor;
+        unidade = found.unidade;
+      }else{
+        setor = 'NÃO MAPEADO';
+        unidade = 'NÃO MAPEADO';
+        naoMapeados.add(normalizeOrg(nome));
+      }
+    }
+
+    RAW.push({
+      nome,
+      nomeAbrev: String(row[idx.nomeAbrev] ?? nome).trim(),
+      data: String(row[idx.data] ?? '').trim(),
+      mes: String(row[idx.mes] ?? '').trim(),
+      status: String(row[idx.status] ?? '').trim(),
+      tipo: String(row[idx.tipo] ?? '').trim(),
+      observacao: String(row[idx.observacao] ?? '').trim(),
+      motivo,
+      setor,
+      unidade
+    });
+  }
+  if(temColunasOrg) saveRoster();
+  return { excluidosOutrosMotivos, naoMapeados: [...naoMapeados] };
+}
+function normalizeOrg(s){
+  return s.toUpperCase().replace(/\s+/g,' ').trim();
+}
+function mergeUnknownOrgUnits(){
+  // Garante que setores/unidades novos (não previstos na lista oficial) continuem
+  // aparecendo nos filtros, sem sobrescrever a estrutura canônica já conhecida.
+  // Placeholders de pendência não entram na lista de filtros.
+  const PLACEHOLDERS = ['NÃO MAPEADO', 'NÃO INFORMADO'];
+  RAW.forEach(r=>{
+    if(PLACEHOLDERS.includes(r.setor) || PLACEHOLDERS.includes(r.unidade)) return;
+    if(!SETOR_UNIDADE_MAP[r.setor]) SETOR_UNIDADE_MAP[r.setor] = [];
+    if(!SETOR_UNIDADE_MAP[r.setor].includes(r.unidade)) SETOR_UNIDADE_MAP[r.setor].push(r.unidade);
+  });
+  SETORES_CANONICOS.length = 0;
+  SETORES_CANONICOS.push(...Object.keys(SETOR_UNIDADE_MAP).sort((a,b)=>a.localeCompare(b,'pt-BR')));
+}
+
+/* ============== HELPERS ============== */
+// Deriva um rótulo de período a partir das datas dos registros, usado quando
+// o arquivo não traz a coluna "Mês" (caso do export bruto do Pontomais).
+function periodoLabel(){
+  const explicito = RAW.find(r=>r.mes)?.mes;
+  if(explicito) return explicito;
+  const datas = RAW.map(r=>{
+    const m = r.data.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? new Date(+m[3], +m[2]-1, +m[1]) : null;
+  }).filter(Boolean);
+  if(datas.length === 0) return '—';
+  const min = new Date(Math.min(...datas));
+  const max = new Date(Math.max(...datas));
+  const fmt = d => d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+  return min.getTime()===max.getTime() ? fmt(min) : `${fmt(min)} – ${fmt(max)}`;
+}
+
+function groupCount(arr, keyFn){
+  const m = new Map();
+  arr.forEach(item=>{
+    const k = keyFn(item);
+    m.set(k, (m.get(k)||0)+1);
+  });
+  return m;
+}
+function sortedEntries(map){
+  return [...map.entries()].sort((a,b)=>b[1]-a[1]);
+}
+function uniqueSorted(arr){
+  return [...new Set(arr)].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* ============== DASHBOARD GERAL ============== */
+function buildDashboard(){
+  const total = RAW.length;
+  const colabs = new Set(RAW.map(r=>r.nomeAbrev)).size;
+  const setores = groupCount(RAW, r=>r.setor);
+  const motivos = groupCount(RAW, r=>r.motivo);
+  const topSetor = sortedEntries(setores)[0];
+  const topMotivo = sortedEntries(motivos)[0];
+  const mesRef = periodoLabel();
+
+  const selo = document.getElementById('seloApuracao');
+  selo.classList.add('show');
+  document.getElementById('seloValue').textContent = `${mesRef.toUpperCase()} · ${total} AJUSTES`;
+
+  document.getElementById('kpiRow').innerHTML = `
+    <div class="kpi primary"><div class="label">Total de Ajustes</div><div class="value">${total}</div><div class="foot">Período: ${mesRef}</div></div>
+    <div class="kpi"><div class="label">Colaboradores Envolvidos</div><div class="value">${colabs}</div><div class="foot">de todos os setores</div></div>
+    <div class="kpi"><div class="label">Setor Mais Crítico</div><div class="value" style="font-size:18px;">${topSetor?topSetor[0]:'-'}</div><div class="foot">${topSetor?topSetor[1]+' ajustes':''}</div></div>
+    <div class="kpi"><div class="label">Motivo Mais Frequente</div><div class="value" style="font-size:16px;">${topMotivo?topMotivo[0]:'-'}</div><div class="foot">${topMotivo?topMotivo[1]+' ocorrências':''}</div></div>
+  `;
+
+  // Setor x Motivo stacked bar
+  const setoresList = sortedEntries(setores).map(e=>e[0]);
+  const motivosList = uniqueSorted(RAW.map(r=>r.motivo));
+  const datasets = motivosList.map((mot,i)=>{
+    const base = MOTIVO_COLORS[i % MOTIVO_COLORS.length];
+    return {
+      label: mot,
+      data: setoresList.map(set => RAW.filter(r=>r.setor===set && r.motivo===mot).length),
+      backgroundColor: (context)=>{
+        const {ctx, chartArea} = context.chart;
+        return makeGradient(ctx, chartArea, hexToRgba(base,.95), hexToRgba(base,.55));
+      },
+      hoverBackgroundColor: base,
+      borderRadius: 3,
+      borderSkipped: false,
+      maxBarThickness: 34,
+      categoryPercentage: 0.62,
+      barPercentage: 0.9
+    };
+  });
+
+  if(chartSetorMotivo) chartSetorMotivo.destroy();
+  chartSetorMotivo = new Chart(document.getElementById('chartSetorMotivo'), {
+    type:'bar',
+    data:{ labels: setoresList, datasets },
+    options: chartOptsStacked(),
+    plugins:[softShadowPlugin]
+  });
+
+  // Motivo pizza (rosquinha) com total no centro
+  const motEntries = sortedEntries(motivos);
+  if(chartMotivoPizza) chartMotivoPizza.destroy();
+  const totalMotivos = motEntries.reduce((s,e)=>s+e[1],0);
+  chartMotivoPizza = new Chart(document.getElementById('chartMotivoPizza'), {
+    type:'doughnut',
+    data:{
+      labels: motEntries.map(e=>e[0]),
+      datasets:[{
+        data: motEntries.map(e=>e[1]),
+        backgroundColor: motEntries.map((_,i)=>MOTIVO_COLORS[i%MOTIVO_COLORS.length]),
+        hoverOffset: 10,
+        borderWidth: 3,
+        borderColor: cssVar('--bg-card'),
+        spacing: 2
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      cutout:'68%',
+      plugins:{ legend:{ position:'bottom', labels:{ color:cssVar('--text'), font:{size:11}, boxWidth:11, padding:12, usePointStyle:true, pointStyle:'circle' } } }
+    },
+    plugins:[{
+      id:'centerText',
+      afterDraw(chart){
+        const {ctx, chartArea} = chart;
+        if(!chartArea) return;
+        const cx = (chartArea.left+chartArea.right)/2;
+        const cy = (chartArea.top+chartArea.bottom)/2;
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = cssVar('--text');
+        ctx.font = "700 26px " + getComputedStyle(document.body).getPropertyValue('--font-mono');
+        ctx.fillText(totalMotivos, cx, cy - 9);
+        ctx.fillStyle = cssVar('--text-dim');
+        ctx.font = "600 10px sans-serif";
+        ctx.fillText('AJUSTES', cx, cy + 13);
+        ctx.restore();
+      }
+    }]
+  });
+
+  // tabela setores
+  document.getElementById('tblSetores').innerHTML = sortedEntries(setores).map(([s,c])=>
+    `<tr><td>${s}</td><td class="num"><strong>${c}</strong></td><td class="num">${((c/total)*100).toFixed(1)}%</td></tr>`
+  ).join('');
+
+  // top colaboradores
+  const colabMap = new Map();
+  RAW.forEach(r=>{
+    const key = r.nomeAbrev+'||'+r.setor+'||'+r.unidade;
+    if(!colabMap.has(key)) colabMap.set(key,{nome:r.nomeAbrev, setor:r.setor, unidade:r.unidade, total:0});
+    colabMap.get(key).total++;
+  });
+  const topColabs = [...colabMap.values()].sort((a,b)=>b.total-a.total).slice(0,15);
+  document.getElementById('tblColabs').innerHTML = topColabs.map(c=>
+    `<tr><td>${c.nome}</td><td>${c.setor}</td><td>${c.unidade}</td><td class="num"><span class="badge">${c.total}</span></td></tr>`
+  ).join('');
+}
+
+function chartOptsStacked(){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    scales:{
+      x:{ stacked:true, ticks:{ color:cssVar('--text-dim'), font:{size:11} }, grid:{ display:false } },
+      y:{ stacked:true, beginAtZero:true, ticks:{ color:cssVar('--text-dim'), precision:0 }, grid:{ color:cssVar('--border') } }
+    },
+    plugins:{ legend:{ position:'bottom', labels:{ color:cssVar('--text'), font:{size:11}, boxWidth:12, padding:12 } } }
+  };
+}
+
+function refreshChartsTheme(){
+  if(document.getElementById('panel-dashboard').classList.contains('active') && RAW.length) buildDashboard();
+  if(!document.getElementById('selSetor').value) return;
+  if(document.getElementById('panel-detalhe').classList.contains('active')) renderDetalhe();
+  if(document.getElementById('panel-email').classList.contains('active')) renderEmail();
+}
+
+/* ============== FILTROS (compartilhados entre Detalhe e Email) ============== */
+function buildFilters(){
+  ['selSetor','emSetor'].forEach(id=>{
+    const sel = document.getElementById(id);
+    sel.innerHTML = SETORES_CANONICOS.map(s=>`<option value="${s}">${s}</option>`).join('');
+  });
+  updateUnidadeOptions('selSetor','selUnidade');
+  updateUnidadeOptions('emSetor','emUnidade');
+
+  document.getElementById('selSetor').addEventListener('change', ()=>{ updateUnidadeOptions('selSetor','selUnidade'); renderDetalhe(); });
+  document.getElementById('selUnidade').addEventListener('change', renderDetalhe);
+  document.getElementById('emSetor').addEventListener('change', ()=>{ updateUnidadeOptions('emSetor','emUnidade'); renderEmail(); });
+  document.getElementById('emUnidade').addEventListener('change', renderEmail);
+}
+
+function updateUnidadeOptions(setorSelId, unidadeSelId){
+  const setor = document.getElementById(setorSelId).value;
+  const unidades = SETOR_UNIDADE_MAP[setor] || [];
+  document.getElementById(unidadeSelId).innerHTML = unidades.map(u=>`<option value="${u}">${u}</option>`).join('');
+}
+
+document.getElementById('btnIrEmail').addEventListener('click', ()=>{
+  document.getElementById('emSetor').value = document.getElementById('selSetor').value;
+  updateUnidadeOptions('emSetor','emUnidade');
+  document.getElementById('emUnidade').value = document.getElementById('selUnidade').value;
+  goTab('email');
+});
+
+/* ============== DETALHAMENTO ============== */
+function renderDetalhe(){
+  const setor = document.getElementById('selSetor').value;
+  const unidade = document.getElementById('selUnidade').value;
+  const subset = RAW.filter(r=>r.setor===setor && r.unidade===unidade);
+  const container = document.getElementById('detalheContent');
+
+  if(subset.length === 0){
+    container.innerHTML = `<div class="card"><div class="empty"><div class="icon">🔍</div>Nenhum ajuste encontrado para este recorte.</div></div>`;
+    return;
+  }
+
+  const colabMap = new Map();
+  subset.forEach(r=>{
+    colabMap.set(r.nomeAbrev, (colabMap.get(r.nomeAbrev)||0)+1);
+  });
+  const colabEntries = sortedEntries(colabMap);
+
+  container.innerHTML = `
+    <div class="card">
+      <h2>Total de Ajustes — ${setor} (${unidade})</h2>
+      <div class="sub">${subset.length} solicitações de ${colabEntries.length} colaboradores</div>
+      <div class="chart-wrap tall"><canvas id="chartDetalheColab"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Registros Detalhados</h2>
+      <div class="sub">Data, colaborador, motivo e observação</div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Data</th><th>Colaborador</th><th>Motivo</th><th>Observação</th></tr></thead>
+          <tbody>
+            ${subset.map(r=>`<tr><td style="white-space:nowrap;">${r.data}</td><td>${r.nomeAbrev}</td><td>${r.motivo}</td><td style="max-width:420px;">${r.observacao}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  if(chartDetalhe) chartDetalhe.destroy();
+  chartDetalhe = new Chart(document.getElementById('chartDetalheColab'), {
+    type:'bar',
+    data:{
+      labels: colabEntries.map(e=>e[0]),
+      datasets:[{
+        data: colabEntries.map(e=>e[1]),
+        backgroundColor: (context)=>{
+          const {ctx, chartArea} = context.chart;
+          return makeGradient(ctx, chartArea, hexToRgba('#c9a35f',.98), hexToRgba('#c9a35f',.5));
+        },
+        hoverBackgroundColor: '#c9a35f',
+        borderRadius: {topLeft:7, topRight:7, bottomLeft:0, bottomRight:0},
+        borderSkipped: false,
+        maxBarThickness: 46,
+        categoryPercentage: 0.68,
+        barPercentage: 0.9
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:26 } },
+      plugins:{ legend:{ display:false }, tooltip:{ enabled:true } },
+      scales:{
+        x:{ ticks:{ color:cssVar('--text-dim'), font:{size:10.5}, maxRotation:0, autoSkip:false } , grid:{ display:false } },
+        y:{ beginAtZero:true, ticks:{ color:cssVar('--text-dim'), precision:0 }, grid:{ color:cssVar('--border') } }
+      }
+    },
+    plugins:[softShadowPlugin, pillDataLabels({ fill:cssVar('--accent-soft'), ink:cssVar('--accent'), border:cssVar('--accent') })]
+  });
+}
+
+// Plugin reutilizável: desenha o valor de cada barra numa "pílula" arredondada acima dela
+function pillDataLabels(opts){
+  const { fill, ink, border } = opts;
+  return {
+    id:'pillDataLabels',
+    afterDatasetsDraw(chart){
+      const {ctx} = chart;
+      const meta = chart.getDatasetMeta(0);
+      meta.data.forEach((bar,i)=>{
+        const val = chart.data.datasets[0].data[i];
+        const text = String(val);
+        ctx.save();
+        ctx.font = "700 11px " + getComputedStyle(document.body).getPropertyValue('--font-mono');
+        const w = Math.max(22, ctx.measureText(text).width + 14);
+        const h = 18;
+        const x = bar.x - w/2;
+        const y = bar.y - h - 8;
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 1;
+        roundRect(ctx, x, y, w, h, 9);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = ink;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, bar.x, y + h/2 + 0.5);
+        ctx.restore();
+      });
+    }
+  };
+}
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+/* ============== ABA COLABORADORES ============== */
+document.getElementById('colabSearch').addEventListener('input', ()=> renderColaboradores(false));
+document.getElementById('btnAddColab').addEventListener('click', ()=>{
+  const nome = prompt('Nome completo do colaborador (como aparece no Pontomais):');
+  if(!nome || !nome.trim()) return;
+  const key = normalizeOrg(nome);
+  if(ROSTER[key]){ showToast('Esse colaborador já está cadastrado.'); return; }
+  ROSTER[key] = { setor: SETORES_CANONICOS[0] || '', unidade: (SETOR_UNIDADE_MAP[SETORES_CANONICOS[0]] || [])[0] || '' };
+  saveRoster();
+  renderColaboradores(false);
+});
+document.getElementById('btnExportRoster').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(ROSTER, null, 2)], {type:'application/json'});
+  const link = document.createElement('a');
+  link.download = 'cadastro-colaboradores-jca.json';
+  link.href = URL.createObjectURL(blob);
+  link.click();
+});
+
+function renderColaboradores(focusPending){
+  const search = normalizeOrg(document.getElementById('colabSearch').value || '');
+  const nomes = Object.keys(ROSTER).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const filtrados = search ? nomes.filter(n=>n.includes(search)) : nomes;
+
+  document.getElementById('colabCount').textContent = `${nomes.length} colaborador(es) cadastrado(s)${search ? ` · ${filtrados.length} exibido(s)` : ''}`;
+
+  document.getElementById('tblColaboradores').innerHTML = filtrados.map(nome => rowColaborador(nome)).join('');
+  attachColabRowEvents();
+
+  // Card de pendentes
+  const pendingCard = document.getElementById('pendingCard');
+  if(pendingUnmapped.length > 0){
+    pendingCard.style.display = 'block';
+    document.getElementById('pendingTableWrap').innerHTML = `
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th style="width:38%;">Nome</th><th style="width:26%;">Setor</th><th style="width:26%;">Unidade</th><th></th></tr></thead>
+          <tbody id="tblPendentes">${pendingUnmapped.map(nome => rowColaborador(nome, true)).join('')}</tbody>
+        </table>
+      </div>
+      <button class="btn primary small" id="btnSalvarPendentes" style="margin-top:12px;">Salvar e reprocessar</button>
+    `;
+    attachColabRowEvents('tblPendentes');
+    document.getElementById('btnSalvarPendentes').addEventListener('click', ()=>{
+      saveRoster();
+      pendingUnmapped = [];
+      document.getElementById('pendingCard').style.display = 'none';
+      showToast('Cadastro salvo! Reimporte o arquivo para aplicar aos dados já carregados.');
+      renderColaboradores(false);
+    });
+  }else{
+    pendingCard.style.display = 'none';
+  }
+
+  if(focusPending){
+    document.getElementById('pendingCard').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+}
+
+function rowColaborador(nomeKey, isPending){
+  const entry = ROSTER[nomeKey] || { setor:'', unidade:'' };
+  const setorOpts = SETORES_CANONICOS.map(s=>`<option value="${s}" ${s===entry.setor?'selected':''}>${s}</option>`).join('');
+  const unidadesDoSetor = SETOR_UNIDADE_MAP[entry.setor] || [];
+  const unidadeOpts = unidadesDoSetor.map(u=>`<option value="${u}" ${u===entry.unidade?'selected':''}>${u}</option>`).join('');
+  return `
+    <tr data-nome="${nomeKey}">
+      <td>${titleCase(nomeKey)}</td>
+      <td><select class="colab-setor" data-nome="${nomeKey}">${setorOpts}</select></td>
+      <td><select class="colab-unidade" data-nome="${nomeKey}">${unidadeOpts}</select></td>
+      <td><button class="btn small colab-remove" data-nome="${nomeKey}" title="Remover">🗑️</button></td>
+    </tr>`;
+}
+
+function attachColabRowEvents(scopeId){
+  const scope = scopeId ? document.getElementById(scopeId) : document;
+  scope.querySelectorAll('.colab-setor').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const nome = sel.dataset.nome;
+      const novoSetor = sel.value;
+      ROSTER[nome].setor = novoSetor;
+      const unidades = SETOR_UNIDADE_MAP[novoSetor] || [];
+      ROSTER[nome].unidade = unidades[0] || '';
+      saveRoster();
+      // atualiza o select de unidade correspondente na mesma linha
+      const row = sel.closest('tr');
+      const unidadeSel = row.querySelector('.colab-unidade');
+      unidadeSel.innerHTML = unidades.map(u=>`<option value="${u}">${u}</option>`).join('');
+    });
+  });
+  scope.querySelectorAll('.colab-unidade').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      ROSTER[sel.dataset.nome].unidade = sel.value;
+      saveRoster();
+    });
+  });
+  scope.querySelectorAll('.colab-remove').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(!confirm('Remover este colaborador do cadastro?')) return;
+      delete ROSTER[btn.dataset.nome];
+      saveRoster();
+      renderColaboradores(false);
+    });
+  });
+}
+
+/* ============== GERAR E-MAIL ============== */
+function defaultEmailBody(setor, unidade){
+  return `Boa tarde, Gestores e Responsáveis!
+
+Encaminhamos para conhecimento e acompanhamento o indicador de ajustes do ponto eletrônico referente ao Departamento ${setor} da ${unidade === 'MATRIZ' ? 'Matriz' : 'filial ' + titleCase(unidade)}.
+
+[GRAFICO]
+
+Solicitamos, por gentileza, que realizem a análise dos dados apresentados, avaliando as principais ocorrências e possíveis pontos de atenção junto às equipes, a fim de orientar e prevenir as reincidências.
+
+Caso necessitem de mais detalhes ou análises complementares, informamos que a plataforma Pontomais permanece disponível para consulta, permitindo uma visualização mais aprofundada dos registros por colaborador, período e tipo de ocorrência.
+
+Segue o caminho para consulta dos relatórios da sua equipe:
+Site: https://app2.pontomais.com.br/
+Realizar seu login, após seguir o caminho:
+Relatórios > jornada (espelho de ponto) > selecionar o período > gerar relatório
+
+Atenciosamente,
+Departamento Pessoal — Grupo JCA`;
+}
+function titleCase(s){
+  return s.split(' ').map(w=> w.length>2 ? w[0]+w.slice(1).toLowerCase() : w.toLowerCase()).join(' ');
+}
+
+let emailChart;
+function renderEmail(){
+  const setor = document.getElementById('emSetor').value;
+  const unidade = document.getElementById('emUnidade').value;
+  if(!setor || !unidade) return;
+  const subset = RAW.filter(r=>r.setor===setor && r.unidade===unidade);
+
+  document.getElementById('emAssunto').value = `Indicador de Ajustes do Ponto Eletrônico — ${setor} (${unidade})`;
+  document.getElementById('emBody').value = defaultEmailBody(setor, unidade);
+  renderEmailPreview(subset, setor, unidade);
+}
+
+document.getElementById('btnApplyText').addEventListener('click', ()=>{
+  const setor = document.getElementById('emSetor').value;
+  const unidade = document.getElementById('emUnidade').value;
+  const subset = RAW.filter(r=>r.setor===setor && r.unidade===unidade);
+  renderEmailPreview(subset, setor, unidade, document.getElementById('emBody').value);
+});
+
+function renderEmailPreview(subset, setor, unidade, customBody){
+  const body = customBody ?? document.getElementById('emBody').value;
+  const colabMap = new Map();
+  subset.forEach(r=> colabMap.set(r.nomeAbrev, (colabMap.get(r.nomeAbrev)||0)+1));
+  const colabEntries = sortedEntries(colabMap);
+
+  const parts = body.split('[GRAFICO]');
+  const before = parts[0] || '';
+  const after = parts[1] || '';
+
+  const preview = document.getElementById('emailPreview');
+  preview.innerHTML = `
+    <div>${escapeHtml(before).replace(/\n/g,'<br>')}</div>
+    <div class="chart-embed">
+      <div style="font-size:12px;font-weight:700;text-align:center;margin-bottom:8px;color:#333;">Total de ajustes — ${setor} (${unidade === 'MATRIZ' ? 'Matriz' : titleCase(unidade)})</div>
+      <canvas id="emailChartCanvas" height="220"></canvas>
+    </div>
+    <div>${escapeHtml(after).replace(/\n/g,'<br>')}</div>
+  `;
+
+  if(emailChart) emailChart.destroy();
+  emailChart = new Chart(document.getElementById('emailChartCanvas'), {
+    type:'bar',
+    data:{
+      labels: colabEntries.map(e=>e[0]),
+      datasets:[{
+        data: colabEntries.map(e=>e[1]),
+        backgroundColor: (context)=>{
+          const {ctx, chartArea} = context.chart;
+          return makeGradient(ctx, chartArea, '#3d6491', '#1c3350');
+        },
+        borderRadius: {topLeft:6, topRight:6, bottomLeft:0, bottomRight:0},
+        borderSkipped: false,
+        maxBarThickness: 44,
+        categoryPercentage: 0.66,
+        barPercentage: 0.9
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      animation:false,
+      layout:{ padding:{ top:24 } },
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ ticks:{ color:'#555', font:{size:10} }, grid:{ display:false } },
+        y:{ beginAtZero:true, ticks:{ color:'#555', precision:0 }, grid:{ color:'#eee' } }
+      }
+    },
+    plugins:[{
+      id:'emailShadow',
+      beforeDatasetsDraw(chart){ chart.ctx.save(); chart.ctx.shadowColor='rgba(28,51,80,0.22)'; chart.ctx.shadowBlur=6; chart.ctx.shadowOffsetY=3; },
+      afterDatasetsDraw(chart){ chart.ctx.restore(); }
+    }, pillDataLabels({ fill:'#eaf0f7', ink:'#1c3350', border:'#3d6491' })]
+  });
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ============== AÇÕES DE E-MAIL ============== */
+document.getElementById('btnOpenMail').addEventListener('click', ()=>{
+  const to = document.getElementById('emDestinatarios').value.trim();
+  const subject = document.getElementById('emAssunto').value;
+  const body = document.getElementById('emBody').value.replace('[GRAFICO]', '(gráfico anexado / colado abaixo — baixe a imagem pelo botão "Baixar imagem do gráfico" e anexe manualmente)');
+  const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+});
+
+document.getElementById('btnCopyText').addEventListener('click', async ()=>{
+  const body = document.getElementById('emBody').value.replace('[GRAFICO]', '(gráfico — anexar imagem baixada separadamente)');
+  await navigator.clipboard.writeText(body);
+  showToast('Texto copiado!');
+});
+
+document.getElementById('btnCopyHtml').addEventListener('click', async ()=>{
+  const preview = document.getElementById('emailPreview');
+  try{
+    const blob = new Blob([preview.innerHTML], {type:'text/html'});
+    const textBlob = new Blob([preview.innerText], {type:'text/plain'});
+    await navigator.clipboard.write([ new ClipboardItem({ 'text/html': blob, 'text/plain': textBlob }) ]);
+    showToast('E-mail formatado copiado! Cole no Gmail/Outlook (Ctrl+V).');
+  }catch(err){
+    console.error(err);
+    showToast('Não foi possível copiar formatado. Use "Copiar apenas o texto".');
+  }
+});
+
+document.getElementById('btnDownloadChart').addEventListener('click', ()=>{
+  if(!emailChart) return;
+  const link = document.createElement('a');
+  const setor = document.getElementById('emSetor').value;
+  const unidade = document.getElementById('emUnidade').value;
+  link.download = `grafico-${setor}-${unidade}.png`.toLowerCase().replace(/\s+/g,'-');
+  link.href = emailChart.toBase64Image();
+  link.click();
+});
+
+</script>
+</body>
+</html>
